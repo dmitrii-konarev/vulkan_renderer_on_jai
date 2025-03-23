@@ -24027,7 +24027,7 @@ PFN_vkCmdDrawMeshTasksIndirectCountEXT :: #type (commandBuffer: VkCommandBuffer,
 
 #scope_file
 
-libvulkan :: #library,system "vulkan-1";
+libvulkan :: #library "win/vulkan-1";
 
 #import "Basic";
 
