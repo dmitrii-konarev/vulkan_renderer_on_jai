@@ -21351,24 +21351,24 @@ typedef struct VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT {
     VkBool32           vertexAttributeRobustness;
 } VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT;
 
+// commented out for correct operation of generate.jai
 
-
-// VK_NV_present_metering is a preprocessor guard. Do not pass it to API calls.
-#define VK_NV_present_metering 1
-#define VK_NV_PRESENT_METERING_SPEC_VERSION 1
-#define VK_NV_PRESENT_METERING_EXTENSION_NAME "VK_NV_present_metering"
-typedef struct VkSetPresentConfigNV {
-    VkStructureType    sType;
-    const void*        pNext;
-    uint32_t           numFramesPerBatch;
-    uint32_t           presentConfigFeedback;
-} VkSetPresentConfigNV;
-
-typedef struct VkPhysicalDevicePresentMeteringFeaturesNV {
-    VkStructureType    sType;
-    void*              pNext;
-    VkBool32           presentMetering;
-} VkPhysicalDevicePresentMeteringFeaturesNV;
+//// VK_NV_present_metering is a preprocessor guard. Do not pass it to API calls.
+//#define VK_NV_present_metering 1
+//#define VK_NV_PRESENT_METERING_SPEC_VERSION 1
+//#define VK_NV_PRESENT_METERING_EXTENSION_NAME "VK_NV_present_metering"
+//typedef struct VkSetPresentConfigNV {
+//    VkStructureType    sType;
+//    const void*        pNext;
+//    uint32_t           numFramesPerBatch;
+//    uint32_t           presentConfigFeedback;
+//} VkSetPresentConfigNV;
+//
+//typedef struct VkPhysicalDevicePresentMeteringFeaturesNV {
+//    VkStructureType    sType;
+//    void*              pNext;
+//    VkBool32           presentMetering;
+//} VkPhysicalDevicePresentMeteringFeaturesNV;
 
 
 
