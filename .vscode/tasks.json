@@ -1,0 +1,14 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "jai ${workspaceFolder}/main.jai -output_path bin",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+        }
+    ]
+}

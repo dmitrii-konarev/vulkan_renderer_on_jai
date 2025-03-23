@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "configurations": [
+        {
+            "console": "integratedTerminal",
+            "name": "Launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/main.exe",
+            "args": [],
+            "environment": [{ "name": "config", "value": "Debug" }],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
