@@ -1,4 +1,5 @@
 #import "Basic";
+#import "String";
 #import "Window_Creation";
 #import "Input";
 #import "Vulkan";
@@ -75,14 +76,26 @@ createInstance :: () {
         #assert false "OS not defined";
     }
 
+    // Validation Layers
+    validationLayers : [1] *u8;
+    validationLayers[0] = "VK_LAYER_KHRONOS_validation";
+    #if DEBUG {
+        assert(checkValidationLayerSupport(validationLayers), "validation layers requested, but not available!");
+    }
+    
+
     // Instance Create Info
     createInfo: VkInstanceCreateInfo;
     createInfo.sType                   = .VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo        = *appInfo;
     createInfo.enabledExtensionCount   = requiredExtensions.count;
     createInfo.ppEnabledExtensionNames = requiredExtensions.data;
-    createInfo.enabledLayerCount       = 0;
-
+    #if DEBUG {
+        createInfo.enabledLayerCount   = validationLayers.count;
+        createInfo.ppEnabledLayerNames = validationLayers.data;
+    } else {
+        createInfo.enabledLayerCount   = 0;
+    }
     #if OS == .MACOS {
         createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     }
@@ -90,4 +103,30 @@ createInstance :: () {
     // Create Vulkan Instance
     result := vkCreateInstance(*createInfo, null, *instance);
     assert(result == .SUCCESS, "vkCreateInstance result: %", result);
+}
+
+checkValidationLayerSupport :: (validationLayers: [] *u8) -> bool {
+    layerCount : u32;
+    vkEnumerateInstanceLayerProperties(*layerCount, null);
+
+    availableLayers := NewArray(layerCount, VkLayerProperties);
+    vkEnumerateInstanceLayerProperties(*layerCount, availableLayers.data);
+
+    for layerName: validationLayers {
+        layerFound := false;
+        for layerProperties: availableLayers{
+            if equal(to_string(layerName), to_string(*layerProperties.layerName[0]))
+            {
+                layerFound = true;
+                break;
+            }
+        }
+
+        if !layerFound {
+            return false;
+        }
+        
+    }
+
+    return true;
 }
