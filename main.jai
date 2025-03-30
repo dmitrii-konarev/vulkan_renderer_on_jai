@@ -62,18 +62,20 @@ createInstance :: () {
         for extensions print(" % (%)\n", to_string(it.extensionName.data), it.specVersion);
     }
 
+    requiredExtensions: [..] *u8;
     #if OS == .WINDOWS {
-        requiredExtensions: [2] *u8;
-        requiredExtensions[0] = VK_KHR_SURFACE_EXTENSION_NAME.data;
-        requiredExtensions[1] = VK_KHR_WIN32_SURFACE_EXTENSION_NAME.data;
+        array_add(*requiredExtensions, VK_KHR_SURFACE_EXTENSION_NAME.data);
+        array_add(*requiredExtensions, VK_KHR_WIN32_SURFACE_EXTENSION_NAME.data);
     } else #if OS == .LINUX {
-        requiredExtensions: [0] *u8;
         #assert requiredExtensions.count > 0 "Extensions not defined";
     } else #if OS == .MACOS {
-        requiredExtensions: [1] *u8;
-        requiredExtensions[0] = VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME.data;
+        array_add(*requiredExtensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME.data);
     } else {
         #assert false "OS not defined";
+    }
+
+    #if DEBUG {
+        array_add(*requiredExtensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME.data);
     }
 
     // Validation Layers
@@ -88,7 +90,7 @@ createInstance :: () {
     createInfo: VkInstanceCreateInfo;
     createInfo.sType                   = .VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo        = *appInfo;
-    createInfo.enabledExtensionCount   = requiredExtensions.count;
+    createInfo.enabledExtensionCount   = xx requiredExtensions.count;
     createInfo.ppEnabledExtensionNames = requiredExtensions.data;
     #if DEBUG {
         createInfo.enabledLayerCount   = validationLayers.count;
