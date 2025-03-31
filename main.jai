@@ -15,6 +15,7 @@ HEIGHT : u32 = 480;
 window : Window_Type;
 
 instance : VkInstance;
+debugMessenger: VkDebugUtilsMessengerEXT;
 
 main :: (){
     window = create_window(WIDTH, HEIGHT, "Vulkan");
@@ -25,6 +26,7 @@ main :: (){
 
 initVulkan :: () {
     createInstance();
+    setupDebugMessenger();
 }
 
 mainLoop :: (){
@@ -38,6 +40,7 @@ mainLoop :: (){
 }
 
 cleanup :: () {
+    cleanupDebugMessenger();
     vkDestroyInstance(instance, null);
 }
 
@@ -82,7 +85,7 @@ createInstance :: () {
     validationLayers : [1] *u8;
     validationLayers[0] = "VK_LAYER_KHRONOS_validation";
     #if DEBUG {
-        assert(checkValidationLayerSupport(validationLayers), "validation layers requested, but not available!");
+        assert(checkValidationLayerSupport(validationLayers), "validation layers requested, but not available!\n");
     }
     
 
@@ -95,6 +98,10 @@ createInstance :: () {
     #if DEBUG {
         createInfo.enabledLayerCount   = validationLayers.count;
         createInfo.ppEnabledLayerNames = validationLayers.data;
+
+        debugCreateInfo: VkDebugUtilsMessengerCreateInfoEXT;
+        populateDebugMessengerCreateInfo(*debugCreateInfo);
+        createInfo.pNext = cast(*VkDebugUtilsMessengerCreateInfoEXT) *debugCreateInfo;
     } else {
         createInfo.enabledLayerCount   = 0;
     }
@@ -104,7 +111,32 @@ createInstance :: () {
 
     // Create Vulkan Instance
     result := vkCreateInstance(*createInfo, null, *instance);
-    assert(result == .SUCCESS, "vkCreateInstance result: %", result);
+    assert(result == .SUCCESS, "vkCreateInstance result: %\n", result);
+}
+
+populateDebugMessengerCreateInfo :: (createInfo: *VkDebugUtilsMessengerCreateInfoEXT) {
+    createInfo: VkDebugUtilsMessengerCreateInfoEXT;
+    createInfo.sType           = .VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = .VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                 .VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                 .VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                 .VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType     = .VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                 .VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                 .VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
+    createInfo.pUserData       = null;
+
+}
+
+setupDebugMessenger :: () {
+    #if DEBUG {
+        createInfo: VkDebugUtilsMessengerCreateInfoEXT;
+        populateDebugMessengerCreateInfo(*createInfo);
+
+        result := CreateDebugUtilsMessengerEXT(instance, *createInfo, null, *debugMessenger);
+        assert(result == .VK_SUCCESS, "Failed to set up debug messenger: %\n", result);
+    }
 }
 
 checkValidationLayerSupport :: (validationLayers: [] *u8) -> bool {
@@ -131,4 +163,62 @@ checkValidationLayerSupport :: (validationLayers: [] *u8) -> bool {
     }
 
     return true;
+}
+
+cleanupDebugMessenger :: () {
+    #if DEBUG { DestroyDebugUtilsMessengerEXT(instance, debugMessenger, null);}
+}
+
+debugCallback :: (
+    messageSeverity: VkDebugUtilsMessageSeverityFlagBitsEXT,
+    messageType: VkDebugUtilsMessageTypeFlagsEXT,
+    $$pCallbackData: *VkDebugUtilsMessengerCallbackDataEXT,
+    pUserData: *void)
+    -> VkBool32
+    #c_call {
+        push_context {
+            if messageSeverity >= .VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT {
+                // Message is important enough to show
+                if messageSeverity == {
+                    case .VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT; print("VERBOSE ");
+                    case .VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;    print("INFO ");
+                    case .VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT; print("WARNING ");
+                    case .VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;   print("ERROR ");
+                }
+
+                if messageType == {
+                    case .VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;     print("GENERAL:\n");
+                    case .VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;  print("VALIDATION:\n");
+                    case .VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT; print("PERFORMANCE:\n");
+                }
+
+                print("   %\n", pCallbackData.pMessage);
+            }
+        }
+        
+        return VK_FALSE;
+}
+
+CreateDebugUtilsMessengerEXT :: (
+    instance: VkInstance,
+    $$pCreateInfo : *VkDebugUtilsMessengerCreateInfoEXT,
+    $$pAllocator: *VkAllocationCallbacks,
+    pDebugMessenger : *VkDebugUtilsMessengerEXT) 
+    -> VkResult {
+    func : PFN_vkCreateDebugUtilsMessengerEXT = xx vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if func != null {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    } else {
+        return .VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+DestroyDebugUtilsMessengerEXT :: (
+    instance: VkInstance,
+    debugMessenger: VkDebugUtilsMessengerEXT,
+    $$pAllocator: *VkAllocationCallbacks) {
+    func : PFN_vkDestroyDebugUtilsMessengerEXT = xx vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if func != null {
+        func(instance, debugMessenger, pAllocator);
+    }
 }
