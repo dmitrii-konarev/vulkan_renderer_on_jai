@@ -55,48 +55,20 @@ createInstance :: () {
     appInfo.apiVersion         = VK_API_VERSION_1_4;
 
     // Extensions
-    #if DEBUG {
-        extensionCount : u32;
-        vkEnumerateInstanceExtensionProperties(null, *extensionCount, null);
-        extensions := NewArray(extensionCount, VkExtensionProperties);
-        defer free(extensions.data);
-        vkEnumerateInstanceExtensionProperties(null, *extensionCount, extensions.data);
-        print("available extensions:\n");
-        for extensions print(" % (%)\n", to_string(it.extensionName.data), it.specVersion);
-    }
-
-    requiredExtensions: [..] *u8;
-    #if OS == .WINDOWS {
-        array_add(*requiredExtensions, VK_KHR_SURFACE_EXTENSION_NAME.data);
-        array_add(*requiredExtensions, VK_KHR_WIN32_SURFACE_EXTENSION_NAME.data);
-    } else #if OS == .LINUX {
-        #assert requiredExtensions.count > 0 "Extensions not defined";
-    } else #if OS == .MACOS {
-        array_add(*requiredExtensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME.data);
-    } else {
-        #assert false "OS not defined";
-    }
-
-    #if DEBUG {
-        array_add(*requiredExtensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME.data);
-    }
+    #if DEBUG {printAvailableExtensuins();}
+    extensions := getExtensions();
 
     // Validation Layers
-    validationLayers : [1] *u8;
-    validationLayers[0] = "VK_LAYER_KHRONOS_validation";
-    #if DEBUG {
-        assert(checkValidationLayerSupport(validationLayers), "validation layers requested, but not available!\n");
-    }
+    validationLayers := getValidationLayers();
     
-
     // Instance Create Info
     createInfo: VkInstanceCreateInfo;
     createInfo.sType                   = .VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo        = *appInfo;
-    createInfo.enabledExtensionCount   = xx requiredExtensions.count;
-    createInfo.ppEnabledExtensionNames = requiredExtensions.data;
+    createInfo.enabledExtensionCount   = xx extensions.count;
+    createInfo.ppEnabledExtensionNames = extensions.data;
     #if DEBUG {
-        createInfo.enabledLayerCount   = validationLayers.count;
+        createInfo.enabledLayerCount   = xx validationLayers.count;
         createInfo.ppEnabledLayerNames = validationLayers.data;
 
         debugCreateInfo: VkDebugUtilsMessengerCreateInfoEXT;
@@ -137,6 +109,45 @@ setupDebugMessenger :: () {
         result := CreateDebugUtilsMessengerEXT(instance, *createInfo, null, *debugMessenger);
         assert(result == .VK_SUCCESS, "Failed to set up debug messenger: %\n", result);
     }
+}
+
+printAvailableExtensuins :: () {
+        extensionCount : u32;
+        vkEnumerateInstanceExtensionProperties(null, *extensionCount, null);
+        extensions := NewArray(extensionCount, VkExtensionProperties);
+        defer free(extensions.data);
+        vkEnumerateInstanceExtensionProperties(null, *extensionCount, extensions.data);
+        print("available extensions:\n");
+        for extensions print(" % (%)\n", to_string(it.extensionName.data), it.specVersion);
+}
+
+getExtensions :: () -> [..] *u8 {
+    extensions: [..] *u8;
+    #if OS == .WINDOWS {
+        array_add(*extensions, VK_KHR_SURFACE_EXTENSION_NAME.data);
+        array_add(*extensions, VK_KHR_WIN32_SURFACE_EXTENSION_NAME.data);
+    } else #if OS == .LINUX {
+        #assert extensions.count > 0 "Extensions not defined";
+    } else #if OS == .MACOS {
+        array_add(*extensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME.data);
+    } else {
+        #assert false "OS not defined";
+    }
+
+    #if DEBUG {
+        array_add(*extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME.data);
+    }
+
+    return extensions;
+}
+
+getValidationLayers :: () -> [..] *u8 {
+    validationLayers : [..] *u8;;
+    #if DEBUG {
+        array_add(*validationLayers, "VK_LAYER_KHRONOS_validation");
+        assert(checkValidationLayerSupport(validationLayers), "validation layers requested, but not available!\n");
+    }
+    return validationLayers;
 }
 
 checkValidationLayerSupport :: (validationLayers: [] *u8) -> bool {
