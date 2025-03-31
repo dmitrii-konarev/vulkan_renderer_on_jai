@@ -16,34 +16,41 @@ window : Window_Type;
 instance : VkInstance;
 debugMessenger: VkDebugUtilsMessengerEXT;
 
-main :: (){
+main :: ()
+{
     window = create_window(WIDTH, HEIGHT, "Vulkan");
     initVulkan();
     mainLoop();
     cleanup();
 }
 
-initVulkan :: () {
+initVulkan :: ()
+{
     createInstance();
     setupDebugMessenger();
 }
 
-mainLoop :: (){
+mainLoop :: ()
+{
     quit := false;
-    while !quit {
+    while !quit
+    {
         update_window_events();
-        for events_this_frame {
+        for events_this_frame
+        {
             if it.type == .QUIT then quit = true;
         }
     }
 }
 
-cleanup :: () {
+cleanup :: ()
+{
     cleanupDebugMessenger();
     vkDestroyInstance(instance, null);
 }
 
-createInstance :: () {
+createInstance :: ()
+{
     // Application Info
     appInfo: VkApplicationInfo;
     appInfo.sType              = .VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -66,17 +73,21 @@ createInstance :: () {
     createInfo.pApplicationInfo        = *appInfo;
     createInfo.enabledExtensionCount   = xx extensions.count;
     createInfo.ppEnabledExtensionNames = extensions.data;
-    #if DEBUG {
+    #if DEBUG
+    {
         createInfo.enabledLayerCount   = xx validationLayers.count;
         createInfo.ppEnabledLayerNames = validationLayers.data;
 
         debugCreateInfo: VkDebugUtilsMessengerCreateInfoEXT;
         populateDebugMessengerCreateInfo(*debugCreateInfo);
         createInfo.pNext = cast(*VkDebugUtilsMessengerCreateInfoEXT) *debugCreateInfo;
-    } else {
+    }
+    else
+    {
         createInfo.enabledLayerCount   = 0;
     }
-    #if OS == .MACOS {
+    #if OS == .MACOS
+    {
         createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     }
 
@@ -85,8 +96,10 @@ createInstance :: () {
     assert(result == .SUCCESS, "vkCreateInstance result: %\n", result);
 }
 
-setupDebugMessenger :: () {
-    #if DEBUG {
+setupDebugMessenger :: ()
+{
+    #if DEBUG
+    {
         createInfo: VkDebugUtilsMessengerCreateInfoEXT;
         populateDebugMessengerCreateInfo(*createInfo);
 
@@ -95,8 +108,9 @@ setupDebugMessenger :: () {
     }
 }
 
-cleanupDebugMessenger :: () {
-    #if DEBUG { DestroyDebugUtilsMessengerEXT(instance, debugMessenger, null);}
+cleanupDebugMessenger :: ()
+{
+    #if DEBUG {DestroyDebugUtilsMessengerEXT(instance, debugMessenger, null);}
 }
 
 debugCallback :: (
@@ -105,18 +119,22 @@ debugCallback :: (
     $$pCallbackData: *VkDebugUtilsMessengerCallbackDataEXT,
     pUserData: *void)
     -> VkBool32
-    #c_call {
-        push_context {
+    #c_call
+{
+        push_context
+        {
             if messageSeverity >= .VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT {
                 // Message is important enough to show
-                if messageSeverity == {
+                if messageSeverity ==
+                {
                     case .VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT; print("VERBOSE ");
                     case .VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;    print("INFO ");
                     case .VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT; print("WARNING ");
                     case .VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;   print("ERROR ");
                 }
 
-                if messageType == {
+                if messageType ==
+                {
                     case .VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;     print("GENERAL:\n");
                     case .VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;  print("VALIDATION:\n");
                     case .VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT; print("PERFORMANCE:\n");
@@ -134,11 +152,15 @@ CreateDebugUtilsMessengerEXT :: (
     $$pCreateInfo : *VkDebugUtilsMessengerCreateInfoEXT,
     $$pAllocator: *VkAllocationCallbacks,
     pDebugMessenger : *VkDebugUtilsMessengerEXT) 
-    -> VkResult {
+    -> VkResult
+{
     func : PFN_vkCreateDebugUtilsMessengerEXT = xx vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if func != null {
+    if func != null
+    {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    } else {
+    }
+    else
+    {
         return .VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }
@@ -146,9 +168,11 @@ CreateDebugUtilsMessengerEXT :: (
 DestroyDebugUtilsMessengerEXT :: (
     instance: VkInstance,
     debugMessenger: VkDebugUtilsMessengerEXT,
-    $$pAllocator: *VkAllocationCallbacks) {
+    $$pAllocator: *VkAllocationCallbacks)
+{
     func : PFN_vkDestroyDebugUtilsMessengerEXT = xx vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if func != null {
+    if func != null
+    {
         func(instance, debugMessenger, pAllocator);
     }
 }
