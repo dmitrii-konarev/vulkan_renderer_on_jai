@@ -55,7 +55,7 @@ getExtensions :: () -> [..] *u8
 
 getValidationLayers :: () -> [..] *u8
 {
-    validationLayers : [..] *u8;;
+    validationLayers : [..] *u8;
     #if DEBUG
     {
         array_add(*validationLayers, "VK_LAYER_KHRONOS_validation");
@@ -91,4 +91,18 @@ checkValidationLayerSupport :: (validationLayers: [] *u8) -> bool
         
     }
     return true;
+}
+
+isDeviceSuitable :: (device: VkPhysicalDevice) -> bool
+{
+    graphics := U32_MAX;
+    queueFamilies := vkGetPhysicalDeviceQueueFamilyProperties(device,, temp);
+
+    for queueFamilies
+    {
+        if it.queueFlags & .VK_QUEUE_GRAPHICS_BIT {
+            graphics = xx it_index;
+        }
+    }
+    return graphics != U32_MAX;
 }

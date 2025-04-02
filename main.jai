@@ -3,6 +3,8 @@
 #import "Window_Creation";
 #import "Input";
 #import "Vulkan";
+#import "Math";
+
 #if OS ==.WINDOWS {#import "Windows";}
 
 #load "additional_vulkan_functions.jai";
@@ -16,6 +18,8 @@ window : Window_Type;
 instance : VkInstance;
 debugMessenger: VkDebugUtilsMessengerEXT;
 
+physicalDevice: VkPhysicalDevice  = VK_NULL_HANDLE;
+
 main :: ()
 {
     window = create_window(WIDTH, HEIGHT, "Vulkan");
@@ -28,6 +32,7 @@ initVulkan :: ()
 {
     createInstance();
     setupDebugMessenger();
+    pickPhysicalDevice();
 }
 
 mainLoop :: ()
@@ -106,6 +111,23 @@ setupDebugMessenger :: ()
         result := CreateDebugUtilsMessengerEXT(instance, *createInfo, null, *debugMessenger);
         assert(result == .VK_SUCCESS, "Failed to set up debug messenger: %\n", result);
     }
+}
+
+pickPhysicalDevice :: ()
+{
+    devices, result := vkEnumeratePhysicalDevices(instance,, temp);
+    assert(result == .VK_SUCCESS, "vkEnumeratePhysicalDevices result: %\n", result);
+    assert(devices.count > 0, "Failed to find GPUs with Vulkan support!\n");
+
+    for devices
+    {
+        if isDeviceSuitable(it)
+        {
+            physicalDevice = it;
+            break;
+        }
+    }
+    assert(physicalDevice != VK_NULL_HANDLE, "Failed to find a suitable GPU!\n");
 }
 
 cleanupDebugMessenger :: ()
