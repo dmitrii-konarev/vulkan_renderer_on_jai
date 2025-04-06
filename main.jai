@@ -17,13 +17,15 @@ window : Window_Type;
 
 instance      : VkInstance;
 debugMessenger: VkDebugUtilsMessengerEXT;
+surface       : VkSurfaceKHR;
 physicalDevice: VkPhysicalDevice;
 device        : VkDevice;
 graphicsQueue : VkQueue;
+presentQueue  : VkQueue;
 
 main :: ()
 {
-    window = create_window(WIDTH, HEIGHT, "Vulkan");
+    window = create_window(WIDTH, HEIGHT, "Vulkan", 400, 200);
     initVulkan();
     mainLoop();
     cleanup();
@@ -33,6 +35,7 @@ initVulkan :: ()
 {
     createInstance();
     setupDebugMessenger();
+    createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
 }
@@ -54,6 +57,7 @@ cleanup :: ()
 {
     vkDestroyDevice(device, null);
     cleanupDebugMessenger();
+    vkDestroySurfaceKHR(instance, surface, null);
     vkDestroyInstance(instance, null);
 }
 
@@ -116,6 +120,22 @@ setupDebugMessenger :: ()
     }
 }
 
+createSurface :: ()
+{
+    #if OS == .WINDOWS {
+        hwnd := window;
+        createInfo: VkWin32SurfaceCreateInfoKHR;
+        createInfo.sType = .VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        createInfo.hwnd = hwnd;
+        createInfo.hinstance = GetModuleHandleW(null);
+        result := vkCreateWin32SurfaceKHR(instance, *createInfo, null, *surface);
+        assert(result == .SUCCESS, "vkCreateWin32SurfaceKHR result: %", result);
+    } else {
+        // @ToDo: Non-Windows version
+        #assert false "Create non Windows surface";
+    }
+}
+
 pickPhysicalDevice :: ()
 {
     devices, result := vkEnumeratePhysicalDevices(instance,, temp);
@@ -124,7 +144,7 @@ pickPhysicalDevice :: ()
 
     for devices
     {
-        if isDeviceSuitable(it)
+        if isDeviceSuitable(it, surface)
         {
             physicalDevice = it;
             break;
@@ -135,27 +155,42 @@ pickPhysicalDevice :: ()
 
 createLogicalDevice :: ()
 {
-    queueFamilyIndex := findQueueFamilies(physicalDevice);
-    queueCreateInfo: VkDeviceQueueCreateInfo;
-    queueCreateInfo.sType = .VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
-    queueCreateInfo.queueCount = 1;
+    graphicsQueueFamilyIndex, presentQueueFamilyIndex := findQueueFamilies(physicalDevice, surface);
+
+    queueCreateInfos: [..] VkDeviceQueueCreateInfo;
     queuePriority : float = 1;
-    queueCreateInfo.pQueuePriorities = *queuePriority;
+
+    graphicsQueueCreateInfo: VkDeviceQueueCreateInfo;
+    graphicsQueueCreateInfo.sType = .VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    graphicsQueueCreateInfo.queueFamilyIndex = graphicsQueueFamilyIndex;
+    graphicsQueueCreateInfo.queueCount = 1;
+    graphicsQueueCreateInfo.pQueuePriorities = *queuePriority;
+    array_add(*queueCreateInfos, graphicsQueueCreateInfo);
+
+    if graphicsQueueFamilyIndex != presentQueueFamilyIndex
+    {
+        presentQueueCreateInfo: VkDeviceQueueCreateInfo;
+        presentQueueCreateInfo.sType = .VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        presentQueueCreateInfo.queueFamilyIndex = presentQueueFamilyIndex;
+        presentQueueCreateInfo.queueCount = 1;
+        presentQueueCreateInfo.pQueuePriorities = *queuePriority;
+        array_add(*queueCreateInfos, presentQueueCreateInfo);
+    }
 
     deviceFeatures: VkPhysicalDeviceFeatures;
 
     createInfo: VkDeviceCreateInfo;
     createInfo.sType = .VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos = *queueCreateInfo;
-    createInfo.queueCreateInfoCount = 1;
+    createInfo.pQueueCreateInfos = queueCreateInfos.data;
+    createInfo.queueCreateInfoCount = xx queueCreateInfos.count;
     createInfo.pEnabledFeatures = *deviceFeatures;
     createInfo.enabledExtensionCount = 0;
 
     result := vkCreateDevice(physicalDevice, *createInfo, null, *device);
     assert(result == .VK_SUCCESS, "vkCreateDevice result: %\n", result);
 
-    vkGetDeviceQueue(device, queueFamilyIndex, 0, *graphicsQueue);
+    vkGetDeviceQueue(device, graphicsQueueFamilyIndex, 0, *graphicsQueue);
+    vkGetDeviceQueue(device, presentQueueFamilyIndex, 0, *presentQueue);
 }
 
 cleanupDebugMessenger :: ()

@@ -93,21 +93,44 @@ checkValidationLayerSupport :: (validationLayers: [] *u8) -> bool
     return true;
 }
 
-isDeviceSuitable :: (device: VkPhysicalDevice) -> bool
+isDeviceSuitable :: (device: VkPhysicalDevice, surface: VkSurfaceKHR) -> bool
 {
-    return findQueueFamilies(device) != U32_MAX;
+    graphics, present := findQueueFamilies(device, surface);
+    return graphics != U32_MAX && present != U32_MAX;
 }
 
-findQueueFamilies :: (device: VkPhysicalDevice) -> u32
+findQueueFamilies :: (device: VkPhysicalDevice, surface: VkSurfaceKHR) -> u32 , u32
 {
-    queueFamilyCount := U32_MAX;
+    graphicsQueueFamilyIndex := U32_MAX;
+    presentQueueFamilyIndex := U32_MAX;
+
     queueFamilies := vkGetPhysicalDeviceQueueFamilyProperties(device,, temp);
 
     for queueFamilies
     {
         if it.queueFlags & .VK_QUEUE_GRAPHICS_BIT {
-            queueFamilyCount = xx it_index;
+            graphicsQueueFamilyIndex = xx it_index;
+        }
+
+        if surface
+        {
+            presentSupport : VkBool32;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, xx it_index, surface, *presentSupport);
+
+            if presentSupport
+            {
+                presentQueueFamilyIndex = xx it_index;
+            }
+        }
+        else
+        {
+            presentQueueFamilyIndex = xx it_index;
+        }
+        
+        if graphicsQueueFamilyIndex != U32_MAX && presentQueueFamilyIndex != U32_MAX
+        {
+            break;
         }
     }
-    return queueFamilyCount;
+    return graphicsQueueFamilyIndex, presentQueueFamilyIndex;
 }
