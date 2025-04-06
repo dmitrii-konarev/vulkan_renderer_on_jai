@@ -15,10 +15,11 @@ WIDTH  : u32 = 640;
 HEIGHT : u32 = 480;
 window : Window_Type;
 
-instance : VkInstance;
+instance      : VkInstance;
 debugMessenger: VkDebugUtilsMessengerEXT;
-
-physicalDevice: VkPhysicalDevice  = VK_NULL_HANDLE;
+physicalDevice: VkPhysicalDevice;
+device        : VkDevice;
+graphicsQueue : VkQueue;
 
 main :: ()
 {
@@ -33,6 +34,7 @@ initVulkan :: ()
     createInstance();
     setupDebugMessenger();
     pickPhysicalDevice();
+    createLogicalDevice();
 }
 
 mainLoop :: ()
@@ -50,6 +52,7 @@ mainLoop :: ()
 
 cleanup :: ()
 {
+    vkDestroyDevice(device, null);
     cleanupDebugMessenger();
     vkDestroyInstance(instance, null);
 }
@@ -128,6 +131,31 @@ pickPhysicalDevice :: ()
         }
     }
     assert(physicalDevice != VK_NULL_HANDLE, "Failed to find a suitable GPU!\n");
+}
+
+createLogicalDevice :: ()
+{
+    queueFamilyIndex := findQueueFamilies(physicalDevice);
+    queueCreateInfo: VkDeviceQueueCreateInfo;
+    queueCreateInfo.sType = .VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
+    queueCreateInfo.queueCount = 1;
+    queuePriority : float = 1;
+    queueCreateInfo.pQueuePriorities = *queuePriority;
+
+    deviceFeatures: VkPhysicalDeviceFeatures;
+
+    createInfo: VkDeviceCreateInfo;
+    createInfo.sType = .VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos = *queueCreateInfo;
+    createInfo.queueCreateInfoCount = 1;
+    createInfo.pEnabledFeatures = *deviceFeatures;
+    createInfo.enabledExtensionCount = 0;
+
+    result := vkCreateDevice(physicalDevice, *createInfo, null, *device);
+    assert(result == .VK_SUCCESS, "vkCreateDevice result: %\n", result);
+
+    vkGetDeviceQueue(device, queueFamilyIndex, 0, *graphicsQueue);
 }
 
 cleanupDebugMessenger :: ()

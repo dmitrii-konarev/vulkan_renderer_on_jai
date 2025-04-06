@@ -95,14 +95,19 @@ checkValidationLayerSupport :: (validationLayers: [] *u8) -> bool
 
 isDeviceSuitable :: (device: VkPhysicalDevice) -> bool
 {
-    graphics := U32_MAX;
+    return findQueueFamilies(device) != U32_MAX;
+}
+
+findQueueFamilies :: (device: VkPhysicalDevice) -> u32
+{
+    queueFamilyCount := U32_MAX;
     queueFamilies := vkGetPhysicalDeviceQueueFamilyProperties(device,, temp);
 
     for queueFamilies
     {
         if it.queueFlags & .VK_QUEUE_GRAPHICS_BIT {
-            graphics = xx it_index;
+            queueFamilyCount = xx it_index;
         }
     }
-    return graphics != U32_MAX;
+    return queueFamilyCount;
 }
